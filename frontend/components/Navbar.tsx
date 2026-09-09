@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useState } from "react";
-import { Moon, Sparkles, User, Shield, ChevronDown, Check } from "lucide-react";
+import { Sparkles } from "lucide-react";
 import ThemeToggle from "@/components/theme/ThemeToggle";
 
 const NAV_LINKS = [
@@ -18,38 +18,6 @@ export default function Navbar() {
 
   return (
     <header className="w-full border-b border-sand/60 bg-white/80 backdrop-blur-md sticky top-0 z-40 font-arabic">
-      {/* Top Demo Bar */}
-      <div className="bg-ink px-4 py-1.5 text-center text-xs font-bold text-cream">
-        <div className="mx-auto flex max-w-7xl items-center justify-between">
-          <div className="flex items-center gap-2">
-            <span className="flex h-2 w-2 rounded-full bg-mint animate-pulse" />
-            <span className="text-[11px] text-cream/80">منصة إيه اللي زانقك التعليمية — شغالة في جميع الجامعات المصرية 🇪🇬</span>
-          </div>
-
-          <div className="flex items-center gap-2">
-            <span className="text-[11px] text-cream/60 hidden sm:inline">جرّب الواجهات:</span>
-            <Link
-              href="/dashboard/student"
-              className="rounded-md bg-coral/20 px-2 py-0.5 text-[11px] font-bold text-coral hover:bg-coral hover:text-white transition"
-            >
-              🎓 واجهة الطالب
-            </Link>
-            <Link
-              href="/dashboard/tutor"
-              className="rounded-md bg-mint/20 px-2 py-0.5 text-[11px] font-bold text-mint hover:bg-mint hover:text-white transition"
-            >
-              👨‍🏫 واجهة المدرس
-            </Link>
-            <Link
-              href="/dashboard/admin"
-              className="rounded-md bg-lilac/20 px-2 py-0.5 text-[11px] font-bold text-lilac hover:bg-lilac hover:text-white transition"
-            >
-              👑 لوحة تحكم الأدمن
-            </Link>
-          </div>
-        </div>
-      </div>
-
       <nav className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-10">
         {/* Brand */}
         <Link href="/" className="flex items-center gap-3 hover:scale-105 transition-transform group">
