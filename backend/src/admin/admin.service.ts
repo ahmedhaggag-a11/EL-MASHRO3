@@ -106,6 +106,20 @@ export class AdminService {
     });
   }
 
+  async toggleFeaturedTutor(tutorId: string, isFeatured: boolean) {
+    return this.prisma.tutorProfile.update({
+      where: { id: tutorId },
+      data: { isFeaturedOnHome: isFeatured },
+    });
+  }
+
+  async toggleFeaturedWorkshop(workshopId: string, isFeatured: boolean) {
+    return this.prisma.workshop.update({
+      where: { id: workshopId },
+      data: { isFeaturedOnHome: isFeatured },
+    });
+  }
+
   async reviewTutorApplication(
     applicationId: string,
     adminId: string,

@@ -280,6 +280,7 @@ model TutorProfile {
   responseRatePct        Float @default(0)
   successRatePct         Float @default(0)
   rankingScore           Float @default(0)
+  isFeaturedOnHome       Boolean @default(false)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -585,6 +586,7 @@ model Workshop {
 
   tutorId   String?
   status    WorkshopStatus @default(PENDING)
+  isFeaturedOnHome Boolean @default(false)
   updatedAt DateTime       @updatedAt
 
   tutor        User?                @relation("WorkshopTutor", fields: [tutorId], references: [id])

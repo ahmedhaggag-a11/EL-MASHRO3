@@ -12,10 +12,18 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { TutorsService } from './tutors.service';
 
+import { Public } from '../common/decorators/public.decorator';
+
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('tutors')
 export class TutorsController {
   constructor(private tutorsService: TutorsService) {}
+
+  @Public()
+  @Get('featured')
+  getFeaturedTutors() {
+    return this.tutorsService.getFeaturedTutors();
+  }
 
   @Post('apply')
   submitApplication(

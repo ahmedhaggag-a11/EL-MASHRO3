@@ -49,6 +49,25 @@ export class AdminController {
   }
 
   // ------------------------------------------------------------
+  // Featured Items (Home Page)
+  // ------------------------------------------------------------
+  @Patch('tutors/:id/feature')
+  toggleFeaturedTutor(
+    @Param('id') tutorId: string,
+    @Body() dto: { isFeatured: boolean },
+  ) {
+    return this.adminService.toggleFeaturedTutor(tutorId, dto.isFeatured);
+  }
+
+  @Patch('workshops/:id/feature')
+  toggleFeaturedWorkshop(
+    @Param('id') workshopId: string,
+    @Body() dto: { isFeatured: boolean },
+  ) {
+    return this.adminService.toggleFeaturedWorkshop(workshopId, dto.isFeatured);
+  }
+
+  // ------------------------------------------------------------
   // All Student Requests
   // ------------------------------------------------------------
   @Get('requests')

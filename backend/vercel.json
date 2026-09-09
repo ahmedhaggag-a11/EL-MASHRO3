@@ -1,4 +1,5 @@
 {
+  "name": "fokzanka-backend",
   "version": 2,
   "builds": [
     {
@@ -18,11 +19,5 @@
       "src": "/(.*)",
       "dest": "api/index.ts"
     }
-  ],
-  "env": {
-    "DATABASE_URL": "@database_url",
-    "JWT_ACCESS_SECRET": "@jwt_access_secret",
-    "JWT_REFRESH_SECRET": "@jwt_refresh_secret",
-    "FRONTEND_URL": "@frontend_url"
-  }
+  ]
 }

@@ -1,4 +1,10 @@
-export default function TutorsShowcase() {
+export default async function TutorsShowcase() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/tutors/featured`, {
+    next: { revalidate: 60 },
+  }).catch(() => null);
+  
+  const tutors = res?.ok ? await res.json() : [];
+
   return (
     <section id="tutors" className="py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
@@ -10,9 +16,34 @@ export default function TutorsShowcase() {
           كل مدرس في فك زنقة بيجي من أفضل الجامعات المصرية، وبيعدّم سيرته الذاتية وبيخلص مراجعة كاملة من إدارته قبل ما يبدأ يتلقى طلبات.
         </p>
 
-        <div className="rounded-3xl border border-dashed border-sand bg-white p-10 text-center text-ink/60">
-          سيتم عرض المدرسين المعتمدين هنا بعد انضمامهم ومراجعة بياناتهم.
-        </div>
+        {tutors.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {tutors.map((tutor: any) => (
+              <div key={tutor.id} className="rounded-2xl border border-sand bg-white p-6 shadow-sm">
+                <div className="flex items-center gap-4">
+                  <div className="h-16 w-16 rounded-full bg-sand/30 flex items-center justify-center overflow-hidden">
+                    {tutor.user?.avatarUrl ? (
+                      <img src={tutor.user.avatarUrl} alt={tutor.user.fullName} className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-xl font-bold text-ink/50">{tutor.user?.fullName?.charAt(0)}</span>
+                    )}
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-ink">{tutor.user?.fullName}</h3>
+                    <p className="text-sm text-ink/60">{tutor.faculty?.name || 'مدرس معتمد'}</p>
+                  </div>
+                </div>
+                <div className="mt-4 text-sm text-ink/70 line-clamp-2">
+                  {tutor.bio || 'مدرس موثق وجاهز لمساعدتك في موادك الجامعية بأفضل طرق الشرح.'}
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-sand bg-white p-10 text-center text-ink/60">
+            سيتم عرض المدرسين المعتمدين هنا بعد انضمامهم ومراجعة بياناتهم.
+          </div>
+        )}
       </div>
     </section>
   );

@@ -1,6 +1,12 @@
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, Calendar, Clock } from "lucide-react";
 
-export default function Workshops() {
+export default async function Workshops() {
+  const res = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/workshops/featured`, {
+    next: { revalidate: 60 },
+  }).catch(() => null);
+  
+  const workshops = res?.ok ? await res.json() : [];
+
   return (
     <section id="workshops" className="bg-ink/[0.02] py-24">
       <div className="mx-auto max-w-7xl px-6 lg:px-10">
@@ -21,9 +27,39 @@ export default function Workshops() {
           ورش عمل مكثفة مع أفضل المدرسين — مجانية ومدفوعة — تغطي المواد اللي غالباً ما بنلاقي صعوبة فيها.
         </p>
 
-        <div className="rounded-3xl border border-dashed border-sand bg-white p-10 text-center text-ink/60">
-          سيتم الإعلان عن الورش القادمة هنا بعد اعتماد مواعيدها ومدرسيها.
-        </div>
+        {workshops.length > 0 ? (
+          <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {workshops.map((workshop: any) => {
+              const startDate = new Date(workshop.startsAt);
+              return (
+                <div key={workshop.id} className="rounded-2xl border border-sand bg-white p-6 shadow-sm">
+                  <div className="mb-4 flex items-start justify-between">
+                    <span className="inline-block rounded-full bg-coral/10 px-3 py-1 text-xs font-bold text-coral">
+                      {workshop.type === 'FREE' ? 'مجانية' : `${workshop.priceEGP} جنيه`}
+                    </span>
+                  </div>
+                  <h3 className="mb-2 text-xl font-bold text-ink">{workshop.title}</h3>
+                  <p className="mb-6 text-sm text-ink/60 line-clamp-2">{workshop.description}</p>
+                  
+                  <div className="flex items-center gap-4 text-sm font-medium text-ink/70">
+                    <div className="flex items-center gap-1.5">
+                      <Calendar className="h-4 w-4 text-coral" />
+                      {startDate.toLocaleDateString('ar-EG', { month: 'short', day: 'numeric' })}
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <Clock className="h-4 w-4 text-coral" />
+                      {startDate.toLocaleTimeString('ar-EG', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-sand bg-white p-10 text-center text-ink/60">
+            سيتم الإعلان عن الورش القادمة هنا بعد اعتماد مواعيدها ومدرسيها.
+          </div>
+        )}
       </div>
     </section>
   );

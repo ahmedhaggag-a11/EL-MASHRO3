@@ -5,10 +5,18 @@ import { Roles } from '../common/decorators/roles.decorator';
 import { RolesGuard } from '../common/guards/roles.guard';
 import { WorkshopsService } from './workshops.service';
 
+import { Public } from '../common/decorators/public.decorator';
+
 @UseGuards(AuthGuard('jwt'), RolesGuard)
 @Controller('workshops')
 export class WorkshopsController {
   constructor(private workshopsService: WorkshopsService) {}
+
+  @Public()
+  @Get('featured')
+  getFeaturedWorkshops() {
+    return this.workshopsService.getFeaturedWorkshops();
+  }
 
   @Roles('TUTOR')
   @Post()

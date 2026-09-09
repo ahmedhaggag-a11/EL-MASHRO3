@@ -20,6 +20,23 @@ export class TutorsService {
   ) {}
 
   // ------------------------------------------------------------
+  // FEATURED TUTORS
+  // ------------------------------------------------------------
+  async getFeaturedTutors() {
+    return this.prisma.tutorProfile.findMany({
+      where: { isFeaturedOnHome: true, isVerified: true },
+      include: {
+        user: {
+          select: { fullName: true, avatarUrl: true },
+        },
+        university: true,
+        faculty: true,
+      },
+      take: 6,
+    });
+  }
+
+  // ------------------------------------------------------------
   // 1. TEACHER APPLICATION
   // ------------------------------------------------------------
   async submitApplication(

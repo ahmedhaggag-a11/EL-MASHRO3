@@ -6,6 +6,19 @@ import { WorkshopStatus, WorkshopType } from '@prisma/client';
 export class WorkshopsService {
   constructor(private prisma: PrismaService) {}
 
+  async getFeaturedWorkshops() {
+    return this.prisma.workshop.findMany({
+      where: { isFeaturedOnHome: true, status: 'APPROVED' },
+      include: {
+        tutor: {
+          select: { fullName: true, avatarUrl: true },
+        },
+      },
+      take: 3,
+      orderBy: { startsAt: 'asc' },
+    });
+  }
+
   async create(tutorId: string, data: any) {
     return this.prisma.workshop.create({
       data: {
