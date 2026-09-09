@@ -81,6 +81,50 @@ export default function TutorDashboardPage() {
     setTimeout(() => setToastMsg(null), 3500);
   }
 
+  useEffect(() => {
+    async function loadLeads() {
+      const token = localStorage.getItem("fz_token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000"}/api/v1/tutors/leads`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("fz_token");
+          window.location.href = "/login";
+          return;
+        }
+        if (!response.ok) throw new Error("Failed to load tutor leads");
+
+        const data = await response.json();
+        setLeads(data.map((request: any): LeadItem => ({
+          id: request.id,
+          subject: request.subject?.name ?? "مادة غير محددة",
+          topic: request.topic?.name ?? "موضوع غير محدد",
+          student: request.student?.fullName ?? "طالب",
+          university: request.university?.name ?? "جامعة غير محددة",
+          faculty: request.faculty?.name ?? "كلية غير محددة",
+          mode: request.teachingMode,
+          budget: request.budgetEGP ?? 0,
+          urgency: request.urgency ?? "MEDIUM",
+          postedAt: new Date(request.createdAt).toLocaleString("ar-EG"),
+          description: request.description,
+          status: request.status === "PUBLISHED" || request.status === "MATCHING" ? "OPEN" : "PASSED",
+        })));
+      } catch {
+        triggerToast("تعذر تحميل طلبات الطلاب من السيرفر");
+      }
+    }
+
+    loadLeads();
+  }, []);
+
   // Accept Lead
   function handleConfirmAcceptLead() {
     if (!acceptModalLead) return;
@@ -155,19 +199,7 @@ export default function TutorDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs font-bold text-ink/50 md:inline">تبديل الواجهة للتجربة:</span>
-            <Link
-              href="/dashboard/student"
-              className="rounded-xl border border-sand bg-white px-3 py-1.5 text-xs font-bold text-coral transition hover:bg-coral/10"
-            >
-              🎓 واجهة الطالب
-            </Link>
-            <Link
-              href="/dashboard/admin"
-              className="rounded-xl border border-sand dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-lilac transition hover:bg-lilac/10"
-            >
-              👑 واجهة الإدارة
-            </Link>
+           
             <ThemeToggle />
             <Link
               href="/"
