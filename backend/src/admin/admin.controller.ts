@@ -1,0 +1,209 @@
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  Patch,
+  Post,
+  Put,
+  Query,
+  Req,
+  UseGuards,
+} from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+import { RequestStatus, RoleName, TutorApplicationStatus } from '@prisma/client';
+import { Roles } from '../common/decorators/roles.decorator';
+import { RolesGuard } from '../common/guards/roles.guard';
+import { AdminService } from './admin.service';
+import { SettingsService } from './settings.service';
+
+@UseGuards(AuthGuard('jwt'), RolesGuard)
+@Roles('ADMIN')
+@Controller('admin')
+export class AdminController {
+  constructor(
+    private adminService: AdminService,
+    private settingsService: SettingsService,
+  ) {}
+
+  @Get('stats')
+  getStats() {
+    return this.adminService.getOverviewStats();
+  }
+
+  // ------------------------------------------------------------
+  // Teacher Applications
+  // ------------------------------------------------------------
+  @Get('tutor-applications')
+  getTutorApplications(@Query('status') status?: TutorApplicationStatus) {
+    return this.adminService.getTutorApplications(status);
+  }
+
+  @Patch('tutor-applications/:id/status')
+  reviewTutorApplication(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: { status: TutorApplicationStatus; adminNotes?: string },
+  ) {
+    return this.adminService.reviewTutorApplication(id, req.user.id, dto);
+  }
+
+  // ------------------------------------------------------------
+  // All Student Requests
+  // ------------------------------------------------------------
+  @Get('requests')
+  getAllRequests(
+    @Query('status') status?: RequestStatus,
+    @Query('search') search?: string,
+  ) {
+    return this.adminService.getAllRequests({ status, search });
+  }
+
+  @Patch('requests/:id/override-status')
+  overrideRequestStatus(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body() dto: { status: RequestStatus; reason?: string },
+  ) {
+    return this.adminService.overrideRequestStatus(
+      id,
+      req.user.id,
+      dto.status,
+      dto.reason,
+    );
+  }
+
+  // ------------------------------------------------------------
+  // Users & Permissions
+  // ------------------------------------------------------------
+  @Get('users')
+  getUsers(
+    @Query('search') search?: string,
+    @Query('role') role?: RoleName,
+  ) {
+    return this.adminService.getUsers(search, role);
+  }
+
+  @Patch('users/:id/status')
+  toggleUserActive(
+    @Param('id') id: string,
+    @Body('isActive') isActive: boolean,
+  ) {
+    return this.adminService.toggleUserActive(id, isActive);
+  }
+
+  @Post('users/:id/roles')
+  grantRole(
+    @Param('id') id: string,
+    @Body('role') role: RoleName,
+  ) {
+    return this.adminService.grantUserRole(id, role);
+  }
+
+  @Patch('users/:id/roles/revoke')
+  revokeRole(
+    @Param('id') id: string,
+    @Body('role') role: RoleName,
+  ) {
+    return this.adminService.revokeUserRole(id, role);
+  }
+
+  // ------------------------------------------------------------
+  // Disputes
+  // ------------------------------------------------------------
+  @Get('disputes')
+  getDisputes() {
+    return this.adminService.getDisputedRequests();
+  }
+
+  @Post('disputes/:id/resolve')
+  resolveDispute(
+    @Req() req: any,
+    @Param('id') id: string,
+    @Body()
+    dto: {
+      resolution: 'REFUND_STUDENT' | 'PAYOUT_TUTOR' | 'SPLIT';
+      adminNotes?: string;
+    },
+  ) {
+    return this.adminService.resolveDispute(
+      id,
+      req.user.id,
+      dto.resolution,
+      dto.adminNotes,
+    );
+  }
+
+  // ------------------------------------------------------------
+  // Platform Settings
+  // ------------------------------------------------------------
+  @Get('settings/commission')
+  async getCommission() {
+    const commission = await this.settingsService.getNumber('COMMISSION_PERCENT');
+    const inPersonSurcharge = await this.settingsService.getNumber('IN_PERSON_SURCHARGE_PCT');
+    return { commissionPercent: commission, inPersonSurchargePct: inPersonSurcharge };
+  }
+
+  @Put('settings')
+  async updateSetting(
+    @Body() dto: { key: string; value: string },
+  ) {
+    await this.settingsService.set(dto.key, dto.value);
+    return { success: true, key: dto.key, value: dto.value };
+  }
+
+
+  // ------------------------------------------------------------
+  // User Management
+  // ------------------------------------------------------------
+  @Patch('users/:id/info')
+  editUserInfo(
+    @Param('id') id: string,
+    @Body() dto: { fullName?: string; phone?: string },
+  ) {
+    // Stub for updating basic user profile info by Admin
+    return { message: 'User updated successfully (Stub)', id, updates: dto };
+  }
+
+  // ------------------------------------------------------------
+  // Workshops Management
+  // ------------------------------------------------------------
+  @Get('workshops')
+  getWorkshops() {
+    return { message: 'List of all workshops (Stub)' };
+  }
+
+  @Patch('workshops/:id/status')
+  updateWorkshopStatus(
+    @Param('id') id: string,
+    @Body() dto: { status: string }, // PENDING, APPROVED, REJECTED, PUBLISHED
+  ) {
+    return { message: 'Workshop status updated (Stub)', id, status: dto.status };
+  }
+
+  @Post('workshops/:id/grant-free')
+  grantFreeAccess(
+    @Param('id') id: string,
+    @Body() dto: { studentId: string },
+    @Req() req: any,
+  ) {
+    return { message: 'Free access granted (Stub)', workshopId: id, studentId: dto.studentId, adminId: req.user.id };
+  }
+
+  // ------------------------------------------------------------
+  // Payouts Management
+  // ------------------------------------------------------------
+  @Get('payouts')
+  getPayouts() {
+    return { message: 'List of tutor payout requests (Stub)' };
+  }
+
+  @Patch('payouts/:id/status')
+  updatePayoutStatus(
+    @Param('id') id: string,
+    @Body() dto: { status: string }, // PENDING, APPROVED, PAID, REJECTED
+  ) {
+    return { message: 'Payout status updated (Stub)', id, status: dto.status };
+  }
+
+}
