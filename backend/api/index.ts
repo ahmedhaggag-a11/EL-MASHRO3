@@ -5,8 +5,12 @@ import { ExpressAdapter } from '@nestjs/platform-express';
 import express from 'express';
 
 const server = express();
+let bootstrapPromise: Promise<void> | undefined;
 
 async function bootstrap() {
+  if (bootstrapPromise) return bootstrapPromise;
+
+  bootstrapPromise = (async () => {
   const app = await NestFactory.create(AppModule, new ExpressAdapter(server));
 
   app.enableCors({
@@ -24,8 +28,12 @@ async function bootstrap() {
   );
 
   await app.init();
+  })();
+
+  return bootstrapPromise;
 }
 
-bootstrap();
-
-export default server;
+export default async function handler(req: express.Request, res: express.Response) {
+  await bootstrap();
+  return server(req, res);
+}
