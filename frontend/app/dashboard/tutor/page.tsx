@@ -160,15 +160,42 @@ export default function TutorDashboardPage() {
   }
 
   // Submit Payout
-  function handlePayoutSubmit(e: React.FormEvent) {
+  async function handlePayoutSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (payoutAmount > clearedEarnings) {
       triggerToast("⚠️ المبلغ المطلوب أكبر من رصيدك المتاح للسحب.");
       return;
     }
-    setClearedEarnings((c) => c - payoutAmount);
-    triggerToast(`💸 تم تقديم طلب تحويل ${payoutAmount} ج.م عبر ${payoutMethod === "instapay" ? "إنستاباي" : payoutMethod === "vodafone" ? "فودافون كاش" : "الحساب البنكي"} وجاري المعالجة خلال ساعتين.`);
-    setPayoutModalOpen(false);
+
+    const token = localStorage.getItem("fz_token");
+    try {
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000"}/api/v1/payouts`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${token}`,
+          },
+          body: JSON.stringify({
+            amountEGP: payoutAmount,
+            method: payoutMethod,
+            accountDetails: payoutAccount,
+          }),
+        },
+      );
+
+      if (!response.ok) {
+        const data = await response.json().catch(() => ({}));
+        throw new Error(data.message ?? "Payout request failed");
+      }
+
+      setClearedEarnings((c) => c - payoutAmount);
+      triggerToast(`💸 تم إرسال طلب سحب ${payoutAmount} ج.م للأدمن للمراجعة.`);
+      setPayoutModalOpen(false);
+    } catch (error) {
+      triggerToast(error instanceof Error ? error.message : "تعذر إرسال طلب السحب");
+    }
   }
 
   return (

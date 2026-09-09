@@ -73,6 +73,17 @@ interface UserItem {
   joinedAt: string;
 }
 
+interface PayoutItem {
+  id: string;
+  tutorName: string;
+  tutorEmail: string;
+  amountEGP: number;
+  paymentMethod: string;
+  accountDetails: string;
+  status: "PENDING" | "APPROVED" | "PAID" | "REJECTED";
+  createdAt: string;
+}
+
 const INITIAL_APPS: TeacherApp[] = [];
 const INITIAL_REQUESTS: StudentReq[] = [];
 const INITIAL_USERS: UserItem[] = [];
@@ -82,6 +93,7 @@ export default function AdminDashboardPage() {
   const [apps, setApps] = useState<TeacherApp[]>(INITIAL_APPS);
   const [requests, setRequests] = useState<StudentReq[]>(INITIAL_REQUESTS);
   const [users, setUsers] = useState<UserItem[]>(INITIAL_USERS);
+  const [payouts, setPayouts] = useState<PayoutItem[]>([]);
 
   // Filter states
   const [appFilter, setAppFilter] = useState<string>("ALL");
@@ -123,12 +135,16 @@ export default function AdminDashboardPage() {
         });
 
       try {
-        const [applications, allRequests, allUsers, disputes, commission] = await Promise.all([
+        const [applications, allRequests, allUsers, disputes, commission, payoutRequests] = await Promise.all([
           get("tutor-applications"),
           get("requests"),
           get("users"),
           get("disputes"),
           get("settings/commission"),
+          fetch(`${apiBase}/api/v1/payouts`, { headers }).then(async (response) => {
+            if (!response.ok) throw new Error("Admin payouts request failed");
+            return response.json();
+          }),
         ]);
 
         setApps(applications.map((application: any): TeacherApp => ({
@@ -185,6 +201,17 @@ export default function AdminDashboardPage() {
           };
         }));
 
+        setPayouts(payoutRequests.map((payout: any): PayoutItem => ({
+          id: payout.id,
+          tutorName: payout.tutor?.fullName ?? "مدرس غير معروف",
+          tutorEmail: payout.tutor?.email ?? "",
+          amountEGP: payout.amountEGP,
+          paymentMethod: payout.paymentMethod,
+          accountDetails: payout.accountDetails,
+          status: payout.status,
+          createdAt: new Date(payout.createdAt).toLocaleString("ar-EG"),
+        })));
+
         setCommissionPct(commission.commissionPercent ?? 15);
         setInPersonSurcharge(commission.inPersonSurchargePct ?? 5);
         if (disputes.length > 0) {
@@ -202,6 +229,23 @@ export default function AdminDashboardPage() {
 
     loadAdminData();
   }, []);
+
+  async function updatePayoutStatus(id: string, status: "APPROVED" | "REJECTED") {
+    const token = localStorage.getItem("fz_token");
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000"}/api/v1/payouts/${id}/status`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+      body: JSON.stringify({ status }),
+    });
+
+    if (!response.ok) {
+      triggerToast("تعذر تحديث حالة الفاتورة");
+      return;
+    }
+
+    setPayouts((current) => current.map((payout) => payout.id === id ? { ...payout, status } : payout));
+    triggerToast(status === "APPROVED" ? "✅ تمت الموافقة على فاتورة المدرس" : "تم رفض فاتورة المدرس");
+  }
 
   // Teacher application actions
   function handleAcceptTeacher(appId: string) {
@@ -369,19 +413,8 @@ export default function AdminDashboardPage() {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="hidden text-xs font-bold text-ink/50 md:inline">تبديل الواجهة للتجربة:</span>
-            <Link
-              href="/dashboard/student"
-              className="rounded-xl border border-sand bg-white px-3 py-1.5 text-xs font-bold text-coral transition hover:bg-coral/10"
-            >
-              🎓 واجهة الطالب
-            </Link>
-            <Link
-              href="/dashboard/tutor"
-              className="rounded-xl border border-sand dark:border-slate-700 bg-white dark:bg-slate-800 px-3 py-1.5 text-xs font-bold text-mint transition hover:bg-mint/10"
-            >
-              👨‍🏫 واجهة المدرس
-            </Link>
+            
+           
             <ThemeToggle />
             <Link
               href="/"
@@ -1029,6 +1062,67 @@ export default function AdminDashboardPage() {
                           تسوية بنسبة 50/50 ⚖️
                         </button>
                       </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === "payouts" && (
+            <div className="space-y-6">
+              <div className="rounded-3xl border border-sand bg-white p-6 shadow-sm">
+                <h1 className="text-2xl font-black text-ink">💸 فواتير المدرسين (السحب)</h1>
+                <p className="mt-1 text-sm text-ink/60">راجع طلبات سحب الأرباح ووافق عليها أو ارفضها.</p>
+              </div>
+
+              {payouts.length === 0 ? (
+                <div className="rounded-3xl border border-sand bg-white p-10 text-center text-sm font-bold text-ink/50">
+                  لا توجد فواتير سحب حتى الآن.
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {payouts.map((payout) => (
+                    <div key={payout.id} className="rounded-3xl border border-sand bg-white p-6 shadow-sm">
+                      <div className="flex flex-wrap items-start justify-between gap-4">
+                        <div>
+                          <h2 className="text-lg font-black text-ink">{payout.tutorName}</h2>
+                          <p className="text-xs text-ink/50">{payout.tutorEmail} · {payout.createdAt}</p>
+                        </div>
+                        <span className={`rounded-full px-3 py-1 text-xs font-black ${
+                          payout.status === "PENDING" ? "bg-sun/20 text-orange-700" :
+                          payout.status === "APPROVED" || payout.status === "PAID" ? "bg-mint/15 text-mint" :
+                          "bg-red-100 text-red-700"
+                        }`}>
+                          {payout.status === "PENDING" ? "بانتظار المراجعة" : payout.status === "APPROVED" ? "تمت الموافقة" : payout.status === "PAID" ? "تم الصرف" : "مرفوضة"}
+                        </span>
+                      </div>
+
+                      <div className="mt-5 grid gap-3 text-sm sm:grid-cols-3">
+                        <div className="rounded-2xl bg-cream p-4">
+                          <div className="text-xs text-ink/50">المبلغ</div>
+                          <div className="mt-1 text-xl font-black text-mint">{payout.amountEGP} ج.م</div>
+                        </div>
+                        <div className="rounded-2xl bg-cream p-4">
+                          <div className="text-xs text-ink/50">طريقة التحويل</div>
+                          <div className="mt-1 font-black text-ink">{payout.paymentMethod}</div>
+                        </div>
+                        <div className="rounded-2xl bg-cream p-4">
+                          <div className="text-xs text-ink/50">بيانات الحساب</div>
+                          <div className="mt-1 break-all font-black text-ink">{payout.accountDetails}</div>
+                        </div>
+                      </div>
+
+                      {payout.status === "PENDING" && (
+                        <div className="mt-5 flex flex-wrap gap-2 border-t border-sand pt-4">
+                          <button onClick={() => updatePayoutStatus(payout.id, "APPROVED")} className="rounded-full bg-mint px-5 py-2 text-xs font-black text-white hover:bg-green-700">
+                            الموافقة على السحب ✓
+                          </button>
+                          <button onClick={() => updatePayoutStatus(payout.id, "REJECTED")} className="rounded-full bg-red-600 px-5 py-2 text-xs font-black text-white hover:bg-red-700">
+                            رفض الفاتورة ✕
+                          </button>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
