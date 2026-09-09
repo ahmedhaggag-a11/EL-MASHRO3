@@ -58,7 +58,7 @@ interface StudentReq {
   mode: "ONLINE" | "IN_PERSON";
   budget: number;
   urgency: "LOW" | "MEDIUM" | "HIGH" | "ASAP";
-  status: "DRAFT" | "MATCHING" | "TUTOR_SELECTED" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "DISPUTED" | "CANCELLED";
+  status: "DRAFT" | "PUBLISHED" | "MATCHING" | "TUTOR_SELECTED" | "PAYMENT_PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "STUDENT_RATED" | "DISPUTED" | "CANCELLED";
   selectedTutor?: string;
   createdAt: string;
 }
@@ -105,6 +105,103 @@ export default function AdminDashboardPage() {
     setSavedToast(msg);
     setTimeout(() => setSavedToast(null), 3000);
   }
+
+  useEffect(() => {
+    async function loadAdminData() {
+      const token = localStorage.getItem("fz_token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      const apiBase = process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000";
+      const headers = { Authorization: `Bearer ${token}` };
+      const get = (path: string) =>
+        fetch(`${apiBase}/api/v1/admin/${path}`, { headers }).then(async (response) => {
+          if (!response.ok) throw new Error(`Admin request failed: ${path}`);
+          return response.json();
+        });
+
+      try {
+        const [applications, allRequests, allUsers, disputes, commission] = await Promise.all([
+          get("tutor-applications"),
+          get("requests"),
+          get("users"),
+          get("disputes"),
+          get("settings/commission"),
+        ]);
+
+        setApps(applications.map((application: any): TeacherApp => ({
+          id: application.id,
+          name: application.user?.fullName ?? "مدرس بدون اسم",
+          email: application.user?.email ?? "",
+          phone: application.user?.phone ?? "",
+          university: application.universityName ?? "غير محدد",
+          faculty: application.facultyName ?? "غير محدد",
+          experience: application.experienceSummary ?? "لم يضف خبرة بعد",
+          introVideoUrl: application.introVideoUrl ?? undefined,
+          preferredMode: application.preferredMode,
+          status: application.status,
+          statusLabel: application.status === "PENDING"
+            ? "قيد المراجعة"
+            : application.status === "UNDER_REVIEW"
+              ? "تحت المراجعة"
+              : application.status === "ACCEPTED"
+                ? "مقبول ومعتمد"
+                : application.status === "REJECTED"
+                  ? "مرفوض"
+                  : "يحتاج تعديلات",
+          submittedAt: new Date(application.createdAt).toLocaleString("ar-EG"),
+        })));
+
+        setRequests(allRequests.map((request: any): StudentReq => ({
+          id: request.id,
+          studentName: request.student?.fullName ?? "طالب غير معروف",
+          studentEmail: request.student?.email ?? "",
+          university: request.university?.name ?? "غير محددة",
+          faculty: request.faculty?.name ?? "غير محددة",
+          subject: request.subject?.name ?? "مادة غير محددة",
+          topic: request.topic?.name ?? "موضوع غير محدد",
+          description: request.description,
+          mode: request.teachingMode,
+          budget: request.budgetEGP ?? 0,
+          urgency: request.urgency,
+          status: request.status,
+          selectedTutor: request.booking?.tutor?.user?.fullName,
+          createdAt: new Date(request.createdAt).toLocaleString("ar-EG"),
+        })));
+
+        setUsers(allUsers.map((user: any): UserItem => {
+          const roles = user.roles?.map((item: any) => item.role) ?? [];
+          const role = roles.includes("ADMIN") ? "ADMIN" : roles.includes("TUTOR") ? "TUTOR" : "STUDENT";
+          return {
+            id: user.id,
+            name: user.fullName,
+            email: user.email,
+            phone: user.phone ?? "",
+            role,
+            isActive: user.isActive,
+            joinedAt: new Date(user.createdAt).toLocaleString("ar-EG"),
+          };
+        }));
+
+        setCommissionPct(commission.commissionPercent ?? 15);
+        setInPersonSurcharge(commission.inPersonSurchargePct ?? 5);
+        if (disputes.length > 0) {
+          setRequests((current) => {
+            const disputeIds = new Set(disputes.map((item: any) => item.id));
+            return current.map((request) => disputeIds.has(request.id)
+              ? { ...request, status: "DISPUTED" }
+              : request);
+          });
+        }
+      } catch {
+        triggerToast("تعذر تحميل بيانات الإدارة من السيرفر");
+      }
+    }
+
+    loadAdminData();
+  }, []);
 
   // Teacher application actions
   function handleAcceptTeacher(appId: string) {
