@@ -10,8 +10,12 @@ const tajawal = Tajawal({
 });
 
 export const metadata: Metadata = {
-  title: "فك زنقة — إحنا معاك لحد ما نفهم",
+  title: "فك زنقة — إحنا معاك لحد ما تفهم",
   description: "اكتب مشكلتك في أي مادة، واحنا نوصلك بأفضل مدرس يفهمك فيها.",
+  icons: {
+    icon: "/logo.png",
+    apple: "/logo.png",
+  },
 };
 
 import { ThemeProvider } from "@/components/theme/ThemeProvider";
