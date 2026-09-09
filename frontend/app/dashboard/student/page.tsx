@@ -48,7 +48,7 @@ interface RequestItem {
   mode: "ONLINE" | "IN_PERSON";
   budget: number;
   urgency: "LOW" | "MEDIUM" | "HIGH" | "ASAP";
-  status: "DRAFT" | "MATCHING" | "TUTOR_SELECTED" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "STUDENT_RATED" | "DISPUTED";
+  status: "DRAFT" | "PUBLISHED" | "MATCHING" | "TUTOR_SELECTED" | "PAYMENT_PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "STUDENT_RATED" | "CANCELLED" | "DISPUTED";
   statusLabel: string;
   preferredTime: string;
   matches?: TutorMatch[];
@@ -102,6 +102,68 @@ export default function StudentDashboardPage() {
     setToastMsg(msg);
     setTimeout(() => setToastMsg(null), 3500);
   }
+
+  useEffect(() => {
+    async function loadRequests() {
+      const token = localStorage.getItem("fz_token");
+      if (!token) {
+        window.location.href = "/login";
+        return;
+      }
+
+      try {
+        const response = await fetch(
+          `${process.env.NEXT_PUBLIC_API_BASE_URL ?? "http://localhost:4000"}/api/v1/requests/my`,
+          { headers: { Authorization: `Bearer ${token}` } },
+        );
+
+        if (response.status === 401 || response.status === 403) {
+          localStorage.removeItem("fz_token");
+          window.location.href = "/login";
+          return;
+        }
+
+        if (!response.ok) throw new Error("Failed to load requests");
+
+        const data = await response.json();
+        setRequests(
+          data.map((request: any): RequestItem => ({
+            id: request.id,
+            subject: request.subject?.name ?? "طلب أكاديمي",
+            topic: request.topic?.name ?? "موضوع غير محدد",
+            description: request.description,
+            mode: request.teachingMode,
+            budget: request.budgetEGP ?? 0,
+            urgency: request.urgency ?? "MEDIUM",
+            status: request.status,
+            statusLabel: request.status === "MATCHING"
+              ? "جاري ترشيح المدرسين"
+              : request.status === "DRAFT"
+                ? "مسودة"
+                : request.status === "CONFIRMED"
+                  ? "مؤكدة"
+                  : request.status,
+            preferredTime: request.preferredAt
+              ? new Date(request.preferredAt).toLocaleString("ar-EG")
+              : "لم يتم تحديد موعد",
+            matches: (request.matches ?? []).map((match: any) => ({
+              tutorId: match.tutorId,
+              tutorName: match.tutor?.user?.fullName ?? "مدرس متاح",
+              avatar: "👨‍🏫",
+              title: match.tutor?.bio ?? "مدرس متخصص",
+              rating: match.tutor?.ratingAvg ?? 0,
+              sessions: match.tutor?.completedSessionsCount ?? 0,
+              price: match.tutor?.priceMinEGP ?? request.budgetEGP ?? 0,
+            })),
+          })),
+        );
+      } catch {
+        triggerToast("تعذر تحميل زنقاتك من السيرفر");
+      }
+    }
+
+    loadRequests();
+  }, []);
 
   // Select Tutor from matches
   function handleSelectTutor(reqId: string, tutor: TutorMatch) {

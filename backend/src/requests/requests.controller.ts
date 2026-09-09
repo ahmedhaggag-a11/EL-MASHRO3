@@ -33,17 +33,17 @@ export class RequestsController {
     return this.requestsService.findMyRequests(req.user.id, status);
   }
 
+  @Roles('STUDENT')
+  @Patch(':id/publish')
+  publish(@Req() req: any, @Param('id') id: string) {
+    return this.requestsService.publish(id, req.user.id);
+  }
+
   @Get(':id')
   getById(@Req() req: any, @Param('id') id: string) {
     const isTutorOrAdmin =
       req.user.roles?.includes('ADMIN') || req.user.roles?.includes('TUTOR');
     return this.requestsService.getById(id, req.user.id, isTutorOrAdmin);
-  }
-
-  @Roles('STUDENT')
-  @Patch(':id/publish')
-  publish(@Req() req: any, @Param('id') id: string) {
-    return this.requestsService.publish(id, req.user.id);
   }
 
   @Roles('STUDENT')
